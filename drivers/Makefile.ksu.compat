@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# KernelSU compatibility appends for the Pox Kernel (begonia / MT6785) tree.
+#
+# drivers/Makefile sets KBUILD_CFLAGS before descending into any subdirectory,
+# but drivers/kernelsu/Makefile runs afterwards and overwrites the per-object
+# flags of ksu.o. This file is included from there so the quirks below always
+# win. Keep every entry compile-time only - never add build steps here.
+
+# --- SELinux compatibility -------------------------------------------------
+# 4.14 downstream carries selinux_state, priv_app sid lookups and current_sid()
+# in objsec.h, so KernelSU can use the generic selinux helpers.
+CFLAGS_ksu.o += -DKSU_COMPAT_HAS_SELINUX_STATE
+CFLAGS_ksu.o += -DKSU_COMPAT_HAS_CURRENT_SID
+
+# --- Directory iteration ---------------------------------------------------
+# fs/readdir.c exports int iterate_dir(struct file *, struct dir_context *)
+CFLAGS_ksu.o += -DKSU_HAS_ITERATE_DIR
+
+# --- slow_avc_audit backport ----------------------------------------------
+# 4.14.357 uses the single production signature:
+#   int slow_avc_audit(struct selinux_state *, u32, u32, u16, u32, u32, u32,
+#                      int, struct common_audit_data *, unsigned int)
+# so KernelSU may resolve ksu_slow_avc_audit() instead of emitting a stub.
+CFLAGS_ksu.o += -DCONFIG_KSU_SLOW_AVC_AUDIT_BACKPORT
+
+# --- Branding --------------------------------------------------------------
+CFLAGS_ksu.o += -DKSU_POX_DOWNSTREAM
